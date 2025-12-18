@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartBook - Admin Dashboard Complete</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #F3F4F6; }
+        /* Hiệu ứng chuyển cảnh */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        /* Quản lý hiển thị các view */
+        .view-section { display: none; }
+        .view-section.active { display: block; }
+        
+        /* Custom Scrollbar cho bảng */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <aside class="w-64 bg-gray-900 border-r border-gray-800 flex flex-col justify-between hidden md:flex text-white transition-all duration-300 flex-shrink-0">
+        <div>
+            <div class="h-16 flex items-center px-6 border-b border-gray-800">
+                <h1 class="text-2xl font-bold text-indigo-400 cursor-pointer" onclick="switchView('dashboard')">SmartBook <span class="text-xs text-gray-500">Admin</span></h1>
+            </div>
+            <nav class="mt-6 px-4 space-y-2" id="sidebar-menu">
+                <p class="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Hệ thống</p>
+                
+                <a href="#" onclick="switchView('dashboard')" id="nav-dashboard" class="nav-item flex items-center px-4 py-3 bg-indigo-600 text-white rounded-lg font-medium transition">
+                    <i class="fas fa-tachometer-alt w-6"></i> Dashboard
+                </a>
+                
+                <a href="#" onclick="switchView('create-session')" id="nav-create-session" class="nav-item flex items-center px-4 py-3 text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg font-medium transition">
+                    <i class="fas fa-plus-circle w-6"></i> Tạo Buổi Học (UC14)
+                </a>
+                
+                <a href="#" onclick="switchView('ai-config')" id="nav-ai-config" class="nav-item flex items-center px-4 py-3 text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg font-medium transition">
+                    <i class="fas fa-brain w-6"></i> Cấu hình AI (UC25)
+                </a>
+                
+                <a href="#" onclick="switchView('forecast')" id="nav-forecast" class="nav-item flex items-center px-4 py-3 text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg font-medium transition">
+                    <i class="fas fa-chart-bar w-6"></i> Dự báo Nhu cầu (UC29)
+                </a>
+
+                <div class="pt-4 mt-4 border-t border-gray-800">
+                    <p class="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Quản trị</p>
+                    <a href="#" onclick="switchView('users')" id="nav-users" class="nav-item flex items-center px-4 py-3 text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg font-medium transition">
+                        <i class="fas fa-users w-6"></i> Quản lý Users
+                    </a>
+                </div>
+            </nav>
+        </div>
+        <div class="p-4 border-t border-gray-800">
+            <div class="flex items-center gap-3">
+               <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center"><i class="fas fa-user-shield"></i></div>
+               <div>
+                   <p class="text-sm font-bold">Administrator</p>
+                   <p class="text-xs text-gray-500">Super Admin</p>
+               </div>
+               <button class="ml-auto text-gray-500 hover:text-white"><i class="fas fa-sign-out-alt"></i></button>
+           </div>
+       </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col overflow-hidden bg-gray-50 relative">
+        <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 z-20 shadow-sm flex-shrink-0">
+            <h2 class="text-xl font-bold text-gray-800" id="page-title">Tổng quan hệ thống</h2>
+            <div class="flex items-center gap-4">
+                <button class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 relative">
+                    <i class="fas fa-bell"></i>
+                    <span class="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border border-white"></span>
+                </button>
+                <button class="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-gray-700 transition">
+                    <i class="fas fa-download mr-2"></i> Xuất báo cáo
+                </button>
+            </div>
+        </header>
+
+        <div id="toast" class="fixed top-20 right-5 bg-green-500 text-white px-6 py-4 rounded-lg shadow-xl transform translate-x-full transition-transform duration-300 z-50 flex items-center gap-3">
+            <i class="fas fa-check-circle text-xl"></i>
+            <div>
+                <h4 class="font-bold text-sm">Thành công!</h4>
+                <p class="text-xs" id="toast-message">Thao tác đã được ghi nhận.</p>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-8">
+            
+            <div id="view-dashboard" class="view-section active fade-in">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition" onclick="switchView('forecast')">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="text-gray-500 text-sm font-bold uppercase">Dự báo Học viên (UC29)</h4>
+                            <span class="text-green-500 text-xs bg-green-50 px-2 py-1 rounded">+12% vs tháng trước</span>
+                        </div>
+                        <p class="text-3xl font-bold text-gray-800">1,240</p>
+                        <p class="text-xs text-gray-400 mt-2">Dự kiến tuần tới: Cao điểm vào T7, CN</p>
+                        <div class="h-1.5 w-full bg-gray-100 rounded-full mt-3 overflow-hidden">
+                            <div class="h-full bg-indigo-500 w-3/4"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                         <div class="flex justify-between items-center mb-4">
+                            <h4 class="text-gray-500 text-sm font-bold uppercase">Hiệu suất AI</h4>
+                            <span class="text-indigo-500 text-xs bg-indigo-50 px-2 py-1 rounded">Ổn định</span>
+                        </div>
+                        <p class="text-3xl font-bold text-gray-800">92%</p>
+                        <p class="text-xs text-gray-400 mt-2">Tỷ lệ chấp nhận gợi ý lịch học</p>
+                         <div class="h-1.5 w-full bg-gray-100 rounded-full mt-3 overflow-hidden">
+                            <div class="h-full bg-green-500 w-[92%]"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-gray-50 transition" onclick="switchView('create-session')">
+                        <div class="mb-2 text-indigo-100 bg-indigo-600 w-12 h-12 rounded-full flex items-center justify-center">
+                            <i class="fas fa-plus text-xl"></i>
+                        </div>
+                        <h4 class="font-bold text-gray-800">Tạo Khung Giờ Mới (UC14)</h4>
+                        <p class="text-xs text-gray-500 mb-3">Khởi tạo lịch mẫu cho tháng tới</p>
+                        <button class="text-indigo-600 text-sm font-bold hover:underline">Thiết lập ngay &rarr;</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                <i class="fas fa-sliders-h text-indigo-600"></i> Cấu hình quy tắc AI (UC25)
+                            </h3>
+                            <button onclick="switchView('ai-config')" class="text-xs text-indigo-600 hover:underline">Xem chi tiết</button>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div>
+                                    <p class="font-medium text-gray-800">Ưu tiên lấp đầy xe trống</p>
+                                    <p class="text-xs text-gray-500">Tự động gợi ý các xe có lịch trống > 50%</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" value="" class="sr-only peer" checked>
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div>
+                                    <p class="font-medium text-gray-800">Giãn cách giờ học</p>
+                                    <p class="text-xs text-gray-500">Không gợi ý 2 buổi học trong vòng 24h</p>
+                                </div>
+                                <input type="number" value="24" class="w-16 border border-gray-300 rounded px-2 py-1 text-center text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-orange-200 p-6 ring-1 ring-orange-50 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 p-4 opacity-10">
+                            <i class="fas fa-exclamation-triangle text-8xl text-orange-500"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2 relative z-10">
+                            <i class="fas fa-robot text-orange-500"></i> Can thiệp AI (UC21)
+                        </h3>
+                        <p class="text-sm text-gray-600 mb-4 relative z-10">AI đang đề xuất tăng lịch dạy cho GV Trần Hùng vào cuối tuần do nhu cầu cao.</p>
+                        <div class="bg-orange-50 p-4 rounded-lg border border-orange-100 mb-4 relative z-10">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-orange-800 text-sm">Đề xuất: +4 ca/tuần</span>
+                                <span class="text-xs bg-white text-orange-600 px-2 py-1 rounded border border-orange-200 font-bold">Độ tin cậy: 88%</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 relative z-10" id="uc21-actions">
+                            <button onclick="handleUC21('ignore')" class="flex-1 bg-white border border-gray-300 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-50 transition">Bỏ qua</button>
+                            <button onclick="handleUC21('approve')" class="flex-1 bg-orange-600 text-white py-2 rounded-lg font-medium hover:bg-orange-700 shadow-md shadow-orange-200 transition flex items-center justify-center gap-2">
+                                <i class="fas fa-check"></i> Ghi đè & Áp dụng
+                            </button>
+                        </div>
+                        <div id="uc21-success" class="hidden mt-4 text-center text-green-600 font-bold bg-green-50 p-2 rounded relative z-10">
+                            <i class="fas fa-check-circle"></i> Đã áp dụng thay đổi thành công!
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-create-session" class="view-section fade-in">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                        <h3 class="font-bold text-lg text-gray-800">Thiết lập buổi học mới</h3>
+                        <button onclick="switchView('dashboard')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="space-y-5">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Loại hình đào tạo</label>
+                                <select class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                    <option>Bằng lái B2 - Số sàn</option>
+                                    <option>Bằng lái B1 - Số tự động</option>
+                                    <option>Bổ túc tay lái</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Ngày bắt đầu</label>
+                                    <input type="date" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none" value="2023-11-20">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Ca học</label>
+                                    <select class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                        <option>Sáng (7:30 - 11:30)</option>
+                                        <option>Chiều (13:30 - 17:30)</option>
+                                        <option>Tối (18:00 - 21:00)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Giảng viên (AI Gợi ý)</label>
+                                <div class="relative">
+                                    <select class="w-full border border-gray-300 rounded-lg px-4 py-2 pl-10 focus:ring-2 focus:ring-indigo-500 outline-none appearance-none bg-indigo-50 text-indigo-900 font-medium">
+                                        <option>⭐ Nguyễn Văn A (Phù hợp 98%)</option>
+                                        <option>Trần Hùng (Phù hợp 85%)</option>
+                                        <option>Lê Thị B (Bận)</option>
+                                    </select>
+                                    <i class="fas fa-magic absolute left-3 top-3 text-indigo-500"></i>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">*AI tự động lọc giảng viên dựa trên lịch trống và kỹ năng.</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Gán xe tập</label>
+                                <select class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                                    <option>Xe 30A-123.45 (Toyota Vios)</option>
+                                    <option>Xe 30E-567.89 (Honda City)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="pt-4 flex gap-3">
+                                <button onclick="switchView('dashboard')" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 font-medium">Hủy</button>
+                                <button onclick="showToast('Đã tạo buổi học thành công!')" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-bold shadow-lg shadow-indigo-200">
+                                    <i class="fas fa-plus mr-2"></i> Tạo Lịch & Gửi TB
+                                </button>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                            <h4 class="text-sm font-bold text-gray-500 uppercase mb-3">Xem trước lịch tuần này</h4>
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2 p-2 bg-white rounded border border-gray-200 shadow-sm opacity-50">
+                                    <div class="w-10 text-center text-xs font-bold text-gray-400">T2</div>
+                                    <div class="flex-1 text-xs text-gray-400">Đã kín lịch</div>
+                                </div>
+                                <div class="flex items-center gap-2 p-2 bg-white rounded border-l-4 border-l-indigo-500 border-gray-200 shadow-sm">
+                                    <div class="w-10 text-center text-xs font-bold text-gray-800">T3</div>
+                                    <div class="flex-1">
+                                        <div class="text-xs font-bold text-indigo-700">Nguyễn Văn A - Xe 30A...</div>
+                                        <div class="text-[10px] text-gray-500">07:30 - 11:30 (Đang chọn)</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 p-2 bg-white rounded border border-gray-200 shadow-sm opacity-50">
+                                    <div class="w-10 text-center text-xs font-bold text-gray-400">T4</div>
+                                    <div class="flex-1 text-xs text-gray-400">Trống 2 slot</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-ai-config" class="view-section fade-in">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                    <div class="p-6 border-b border-gray-100">
+                        <h3 class="font-bold text-lg text-gray-800">Trung tâm cấu hình thuật toán AI</h3>
+                        <p class="text-sm text-gray-500">Điều chỉnh các trọng số để thay đổi cách hệ thống gợi ý lịch.</p>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                            <div class="border-2 border-transparent hover:border-indigo-500 bg-gray-50 p-4 rounded-xl cursor-pointer transition relative group">
+                                <i class="fas fa-leaf text-green-500 text-2xl mb-2"></i>
+                                <h4 class="font-bold text-gray-800">Tiết kiệm nhiên liệu</h4>
+                                <p class="text-xs text-gray-500">Tối ưu ghép xe, giảm thiểu xe chạy rỗng.</p>
+                                <div class="absolute top-2 right-2 hidden group-hover:block text-indigo-600"><i class="fas fa-check-circle"></i></div>
+                            </div>
+                            <div class="border-2 border-indigo-600 bg-indigo-50 p-4 rounded-xl cursor-pointer relative">
+                                <i class="fas fa-bolt text-indigo-600 text-2xl mb-2"></i>
+                                <h4 class="font-bold text-indigo-900">Tối đa công suất</h4>
+                                <p class="text-xs text-indigo-700">Lấp đầy mọi khung giờ trống, chấp nhận tăng chi phí.</p>
+                                <div class="absolute top-2 right-2 text-indigo-600"><i class="fas fa-check-circle"></i></div>
+                            </div>
+                            <div class="border-2 border-transparent hover:border-indigo-500 bg-gray-50 p-4 rounded-xl cursor-pointer transition group">
+                                <i class="fas fa-balance-scale text-orange-500 text-2xl mb-2"></i>
+                                <h4 class="font-bold text-gray-800">Cân bằng (Khuyên dùng)</h4>
+                                <p class="text-xs text-gray-500">Dàn trải đều lịch cho các giảng viên.</p>
+                            </div>
+                        </div>
+                        <div class="space-y-6 max-w-2xl">
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <label class="text-sm font-bold text-gray-700">Độ ưu tiên Giảng viên Full-time</label>
+                                    <span class="text-sm text-indigo-600 font-bold">80%</span>
+                                </div>
+                                <input type="range" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" value="80">
+                                <p class="text-xs text-gray-500 mt-1">Giảng viên cơ hữu sẽ được ưu tiên xếp lịch trước CTV.</p>
+                            </div>
+                            <hr class="border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h5 class="text-sm font-bold text-gray-800">Chế độ "Học dồn"</h5>
+                                    <p class="text-xs text-gray-500">Cho phép 1 học viên học 2 ca liên tiếp trong ngày.</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" value="" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mt-8 flex justify-end gap-3">
+                             <button onclick="switchView('dashboard')" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 font-medium">Hủy bỏ</button>
+                            <button onclick="showToast('Đã lưu cấu hình AI!')" class="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 font-bold shadow-lg">
+                                <i class="fas fa-save mr-2"></i> Lưu cấu hình
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-forecast" class="view-section fade-in">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="font-bold text-lg text-gray-800">Biểu đồ dự báo học viên (30 ngày tới)</h3>
+                            <select class="border border-gray-300 rounded text-sm px-2 py-1">
+                                <option>Theo ngày</option>
+                                <option>Theo tuần</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end space-x-4 h-64 border-b border-gray-200 pb-2 px-2">
+                            <div class="flex-1 flex flex-col items-center group">
+                                <div class="w-full bg-indigo-100 rounded-t-lg h-[40%] group-hover:bg-indigo-300 transition relative">
+                                    <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-indigo-600 opacity-0 group-hover:opacity-100">40</span>
+                                </div>
+                                <span class="text-xs text-gray-500 mt-2">Tuần 1</span>
+                            </div>
+                            <div class="flex-1 flex flex-col items-center group">
+                                <div class="w-full bg-indigo-200 rounded-t-lg h-[60%] group-hover:bg-indigo-400 transition relative">
+                                    <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-indigo-600 opacity-0 group-hover:opacity-100">60</span>
+                                </div>
+                                <span class="text-xs text-gray-500 mt-2">Tuần 2</span>
+                            </div>
+                            <div class="flex-1 flex flex-col items-center group">
+                                <div class="w-full bg-indigo-500 rounded-t-lg h-[90%] shadow-lg shadow-indigo-200 relative">
+                                     <span class="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-bold bg-gray-800 text-white px-2 py-1 rounded">Cao điểm</span>
+                                </div>
+                                <span class="text-xs font-bold text-indigo-600 mt-2">Tuần 3</span>
+                            </div>
+                            <div class="flex-1 flex flex-col items-center group">
+                                <div class="w-full bg-indigo-300 rounded-t-lg h-[70%] group-hover:bg-indigo-400 transition relative">
+                                    <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-indigo-600 opacity-0 group-hover:opacity-100">70</span>
+                                </div>
+                                <span class="text-xs text-gray-500 mt-2">Tuần 4</span>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-center justify-center gap-6 text-sm">
+                            <div class="flex items-center gap-2"><div class="w-3 h-3 bg-indigo-200 rounded"></div> Bình thường</div>
+                            <div class="flex items-center gap-2"><div class="w-3 h-3 bg-indigo-500 rounded"></div> Quá tải dự kiến</div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <h3 class="font-bold text-lg text-gray-800 mb-4">Đề xuất vận hành</h3>
+                        <div class="space-y-4">
+                            <div class="bg-red-50 border-l-4 border-red-500 p-3 rounded-r">
+                                <h4 class="text-sm font-bold text-red-700">Cảnh báo thiếu xe (Tuần 3)</h4>
+                                <p class="text-xs text-red-600 mt-1">Dự kiến thiếu 05 xe B2 vào Thứ 7 tuần 3. Cần thuê thêm hoặc dời lịch.</p>
+                                <button onclick="showToast('Đã gửi yêu cầu thuê xe!')" class="mt-2 text-xs bg-white border border-red-200 text-red-600 px-2 py-1 rounded hover:bg-red-100">Xử lý ngay</button>
+                            </div>
+                            <div class="bg-green-50 border-l-4 border-green-500 p-3 rounded-r">
+                                <h4 class="text-sm font-bold text-green-700">Dư thừa công suất (Tuần 1)</h4>
+                                <p class="text-xs text-green-600 mt-1">Có 3 giảng viên trống lịch > 20 giờ. Đề xuất mở thêm lớp bổ túc tay lái.</p>
+                            </div>
+                        </div>
+                         <button onclick="switchView('create-session')" class="w-full mt-6 bg-gray-100 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-200 transition">
+                            Điều phối lịch học <i class="fas fa-arrow-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-users" class="view-section fade-in">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col">
+                    <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div class="flex items-center gap-4 w-full md:w-auto">
+                            <div class="relative w-full md:w-64">
+                                <input type="text" placeholder="Tìm kiếm tên, email..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                                <i class="fas fa-search absolute left-3 top-2.5 text-gray-400"></i>
+                            </div>
+                            <select class="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-600 outline-none focus:border-indigo-500">
+                                <option>Tất cả vai trò</option>
+                                <option>Học viên</option>
+                                <option>Giảng viên</option>
+                                <option>Admin</option>
+                            </select>
+                        </div>
+                        <button onclick="showToast('Tính năng thêm mới đang cập nhật')" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 shadow flex items-center gap-2">
+                            <i class="fas fa-plus"></i> Thêm User
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[800px]">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200">User Info</th>
+                                    <th class="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200">Vai trò</th>
+                                    <th class="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200">Tiến độ / Đánh giá</th>
+                                    <th class="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200">Trạng thái</th>
+                                    <th class="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 text-right">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="p-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">A</div>
+                                            <div>
+                                                <p class="font-bold text-gray-800 text-sm">Nguyễn Văn An</p>
+                                                <p class="text-xs text-gray-500">an.nguyen@example.com</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="p-4">
+                                        <span class="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-bold border border-gray-200">Học viên (B2)</span>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="w-32">
+                                            <div class="flex justify-between text-xs mb-1">
+                                                <span class="text-gray-500">Hoàn thành</span>
+                                                <span class="font-bold text-indigo-600">65%</span>
+                                            </div>
+                                            <div class="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                                                <div class="h-full bg-indigo-500 w-[65%]"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="p-4">
+                                        <span class="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-full text-xs font-bold border border-green-100">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Active
+                                        </span>
+                                    </td>
+                                    <td class="p-4 text-right">
+                                        <button class="text-gray-400 hover:text-indigo-600 mx-1"><i class="fas fa-edit"></i></button>
+                                        <button class="text-gray-400 hover:text-red-600 mx-1"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="p-4">
+                                        <div class="flex items-center gap-3">
+                                            <img src="https://i.pravatar.cc/150?u=teacher" alt="Avatar" class="w-10 h-10 rounded-full border border-gray-200">
+                                            <div>
+                                                <p class="font-bold text-gray-800 text-sm">Trần Hùng</p>
+                                                <p class="text-xs text-gray-500">hung.tran@smartbook.vn</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="p-4">
+                                        <span class="px-2 py-1 bg-purple-100 text-purple-600 rounded text-xs font-bold border border-purple-200">Giảng viên</span>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="flex items-center gap-1 text-sm text-yellow-500 font-bold">
+                                            <i class="fas fa-star"></i> 4.8 <span class="text-xs text-gray-400 font-normal">(120 đánh giá)</span>
+                                        </div>
+                                    </td>
+                                    <td class="p-4">
+                                        <span class="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-full text-xs font-bold border border-green-100">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Active
+                                        </span>
+                                    </td>
+                                    <td class="p-4 text-right">
+                                        <button class="text-gray-400 hover:text-indigo-600 mx-1"><i class="fas fa-edit"></i></button>
+                                        <button class="text-gray-400 hover:text-red-600 mx-1"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="p-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center font-bold">L</div>
+                                            <div>
+                                                <p class="font-bold text-gray-800 text-sm">Lê Thị Mai</p>
+                                                <p class="text-xs text-gray-500">mai.le@example.com</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="p-4">
+                                        <span class="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-bold border border-gray-200">Học viên (B1)</span>
+                                    </td>
+                                    <td class="p-4">
+                                        <span class="text-xs text-gray-500 italic">Chưa bắt đầu</span>
+                                    </td>
+                                    <td class="p-4">
+                                        <span class="inline-flex items-center gap-1 px-2 py-1 bg-yellow-50 text-yellow-600 rounded-full text-xs font-bold border border-yellow-100">
+                                            <i class="fas fa-clock text-[10px]"></i> Chờ duyệt
+                                        </span>
+                                    </td>
+                                    <td class="p-4 text-right">
+                                        <button onclick="showToast('Đã duyệt hồ sơ học viên!')" class="text-green-600 hover:bg-green-100 px-2 py-1 rounded text-xs font-bold border border-green-200">Duyệt</button>
+                                    </td>
+                                </tr>
+
+                                <tr class="hover:bg-gray-50 transition bg-indigo-50/30">
+                                    <td class="p-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold"><i class="fas fa-user-shield"></i></div>
+                                            <div>
+                                                <p class="font-bold text-gray-800 text-sm">Phạm Văn Dũng</p>
+                                                <p class="text-xs text-gray-500">dung.pham@admin.vn</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="p-4">
+                                        <span class="px-2 py-1 bg-indigo-100 text-indigo-600 rounded text-xs font-bold border border-indigo-200">Quản trị viên</span>
+                                    </td>
+                                    <td class="p-4">
+                                       <span class="text-xs text-gray-500">Quyền cao nhất</span>
+                                    </td>
+                                    <td class="p-4">
+                                        <span class="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-full text-xs font-bold border border-green-100">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Active
+                                        </span>
+                                    </td>
+                                    <td class="p-4 text-right"></td>
+                                </tr>
+
+                                <tr class="hover:bg-gray-50 transition opacity-60">
+                                     <td class="p-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold">K</div>
+                                            <div>
+                                                <p class="font-bold text-gray-800 text-sm line-through">Kevin Chen</p>
+                                                <p class="text-xs text-gray-500">kevin@example.com</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="p-4">
+                                        <span class="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-bold border border-gray-200">Học viên</span>
+                                    </td>
+                                    <td class="p-4">
+                                        <span class="text-xs text-red-500 font-bold">Vi phạm chính sách</span>
+                                    </td>
+                                    <td class="p-4">
+                                        <span class="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded-full text-xs font-bold border border-red-100">
+                                            <i class="fas fa-ban text-[10px]"></i> Bị khóa
+                                        </span>
+                                    </td>
+                                    <td class="p-4 text-right">
+                                        <button onclick="showToast('Đã mở khóa tài khoản!')" class="text-indigo-600 hover:underline text-xs font-medium">Mở khóa</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="p-4 border-t border-gray-100 flex justify-between items-center">
+                        <span class="text-xs text-gray-500">Hiển thị 5 trên 124 users</span>
+                        <div class="flex gap-2">
+                            <button class="w-8 h-8 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-500 text-xs" disabled><i class="fas fa-chevron-left"></i></button>
+                            <button class="w-8 h-8 rounded bg-indigo-600 text-white flex items-center justify-center text-xs font-bold">1</button>
+                            <button class="w-8 h-8 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-600 text-xs">2</button>
+                            <button class="w-8 h-8 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-600 text-xs">3</button>
+                             <button class="w-8 h-8 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-600 text-xs"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        function switchView(viewId) {
+            // 1. Ẩn tất cả các sections
+            const sections = document.querySelectorAll('.view-section');
+            sections.forEach(sec => sec.classList.remove('active'));
+
+            // 2. Hiện section được chọn
+            const target = document.getElementById('view-' + viewId);
+            if(target) {
+                target.classList.add('active');
+            }
+
+            // 3. Cập nhật Sidebar Active State
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(nav => {
+                nav.classList.remove('bg-indigo-600', 'text-white');
+                nav.classList.add('text-gray-400', 'hover:bg-gray-800');
+            });
+
+            const activeNav = document.getElementById('nav-' + viewId);
+            if(activeNav) {
+                activeNav.classList.remove('text-gray-400', 'hover:bg-gray-800');
+                activeNav.classList.add('bg-indigo-600', 'text-white');
+            }
+
+            // 4. Đổi tiêu đề trang
+            const titles = {
+                'dashboard': 'Tổng quan hệ thống',
+                'create-session': 'Tạo Buổi Học Mới (UC14)',
+                'ai-config': 'Cấu hình AI System (UC25)',
+                'forecast': 'Dự báo & Phân tích (UC29)',
+                'users': 'Quản lý Người dùng hệ thống'
+            };
+            document.getElementById('page-title').innerText = titles[viewId] || 'Hệ thống';
+        }
+
+        // Logic cho UC21: Nút Ghi đè trên Dashboard
+        function handleUC21(action) {
+            const container = document.getElementById('uc21-actions');
+            const successMsg = document.getElementById('uc21-success');
+            
+            if (action === 'approve') {
+                container.classList.add('hidden');
+                successMsg.classList.remove('hidden');
+                showToast('Đã ghi đè lịch theo đề xuất của AI!');
+            } else {
+                document.querySelector('.border-orange-200').style.opacity = '0.5';
+                showToast('Đã bỏ qua đề xuất.');
+            }
+        }
+
+        // Logic hiển thị Toast Notification
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toast-message');
+            
+            msgEl.innerText = message;
+            toast.classList.remove('translate-x-full');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
